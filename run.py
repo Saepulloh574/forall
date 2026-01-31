@@ -86,7 +86,7 @@ API_GET = f"https://api.telegram.org/bot{BOT_GET}"
 
 # Range Bot
 BOT_RANGE = os.getenv("BOT_TOKEN_RANGE")
-CHAT_RANGE = os.getenv("TELEGRAM_CHAT_ID_RANGE") # Note: di script asli ada double dash, kita bersihkan
+CHAT_RANGE = os.getenv("TELEGRAM_CHAT_ID_RANGE") 
 if CHAT_RANGE and CHAT_RANGE.startswith("--"): CHAT_RANGE = CHAT_RANGE[1:]
 ADMIN_RANGE = int(os.getenv("ADMIN_ID_RANGE") or 0)
 
@@ -191,24 +191,17 @@ class MessageBot:
         messages = []
         try:
             # Menggunakan teknik parsing DOM Playwright agar tidak blocking
-            # Kita refresh jika perlu atau tunggu elemen
             try:
                 # Cek apakah ada tabel
                 await self.page.wait_for_selector('tbody', timeout=2000)
             except: pass
-
-            # Mengambil data dari endpoint API (mirip script asli yg expect_response)
-            # Namun untuk stabilitas 'One File', kita scrape DOM saja atau gunakan existing flow
-            # Script asli menggunakan expect_response lambda
-            pass # Logic fetch ada di loop utama
+            pass 
         except: pass
         return []
 
     async def logic_loop(self):
         while True:
             try:
-                # Script asli message.py menggunakan expect_response pada /getnum/info
-                # Kita simulasi klik "Number Info" untuk memicu request
                 try:
                     async with self.page.expect_response(lambda r: "/getnum/info" in r.url, timeout=5000) as resp_info:
                         try:
@@ -956,7 +949,11 @@ class GetBot:
 async def main():
     print("🚀 [SYSTEM] Starting All-In-One Bot...")
     
-    # 1. Start Playwright
+    # 1. Fix Event Loop for Windows (Force Proactor for Subprocess Support)
+    if sys.platform == 'win32':
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
+    # 2. Start Playwright
     async with async_playwright() as p:
         # Launch Browser (Headless - No CDP needed)
         # Use args to bypass some bot detection if needed
@@ -966,7 +963,7 @@ async def main():
         )
         context = await browser.new_context()
         
-        # 2. Global Login
+        # 3. Global Login
         print("🔑 [SYSTEM] Attempting Login to MNIT Network...")
         page = await context.new_page()
         try:
@@ -993,18 +990,18 @@ async def main():
         finally:
             await page.close()
 
-        # 3. Instantiate Bots
+        # 4. Instantiate Bots
         msg_bot = MessageBot(context)
         range_bot = RangeBot(context)
         sms_reward_bot = SmsRewardBot()
         get_bot = GetBot(context)
 
-        # 4. Start Browser Tasks
+        # 5. Start Browser Tasks
         await msg_bot.start()
         await range_bot.start()
         await get_bot.start()
 
-        # 5. Run Loops Concurrently
+        # 6. Run Loops Concurrently
         await asyncio.gather(
             msg_bot.logic_loop(),
             range_bot.logic_loop(),
@@ -1017,9 +1014,8 @@ if __name__ == "__main__":
     Thread(target=lambda: app_flask.run(host='0.0.0.0', port=5000), daemon=True).start()
     
     try:
-        if sys.platform == 'win32':
-            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         asyncio.run(main())
     except KeyboardInterrupt:
         print("🛑 System Stopped.")
+
 
