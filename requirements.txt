@@ -1,7 +1,6 @@
-asyncio
 playwright
-beautifulsoup4
 requests
 python-dotenv
 flask
-python-telegram-bot
+beautifulsoup4
+asyncio
